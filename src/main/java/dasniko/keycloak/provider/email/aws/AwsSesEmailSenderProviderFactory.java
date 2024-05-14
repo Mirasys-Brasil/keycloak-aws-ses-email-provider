@@ -38,7 +38,7 @@ public class AwsSesEmailSenderProviderFactory implements EmailSenderProviderFact
                 .credentialsProvider(EnvironmentVariableCredentialsProvider.create())
                 .build();
         } else {
-            Region region = Region.AP_EAST_1;
+            Region region = Region.US_EAST_1;
             ses = SesClient.builder()
                 .region(region)
                 .credentialsProvider(EnvironmentVariableCredentialsProvider.create())
