@@ -2,8 +2,10 @@ package dasniko.keycloak.provider.email.aws;
 
 import org.keycloak.email.EmailException;
 import org.keycloak.email.EmailSenderProvider;
-import org.keycloak.models.UserModel;
 import org.keycloak.services.ServicesLogger;
+
+import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
+import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.ses.SesClient;
 import software.amazon.awssdk.services.ses.model.Body;
 import software.amazon.awssdk.services.ses.model.Content;
@@ -28,8 +30,8 @@ public class AwsSesEmailSenderProvider implements EmailSenderProvider {
     }
 
     @Override
-    public void send(Map<String, String> config, String user, String subject, String textBody, String htmlBody) throws EmailException {
-
+    public void send(Map<String, String> config, String address, String subject, String textBody, String htmlBody) throws EmailException {
+        boolean auth = "true".equals(config.get("auth"));
         String from = config.get("from");
         String fromDisplayName = config.get("fromDisplayName");
         String replyTo = config.get("replyTo");
@@ -42,7 +44,7 @@ public class AwsSesEmailSenderProvider implements EmailSenderProvider {
 
             SendEmailRequest.Builder sendEmailRequest = SendEmailRequest.builder()
                 .destination(
-                    Destination.builder().toAddresses(user).build()
+                    Destination.builder().toAddresses(address).build()
                 )
                 .message(Message.builder()
                     .subject(Content.builder().charset(StandardCharsets.UTF_8.toString()).data(subject).build())
@@ -60,8 +62,19 @@ public class AwsSesEmailSenderProvider implements EmailSenderProvider {
                     Collections.singletonList(toInternetAddress(replyTo, replyToDisplayName).toString()));
             }
 
-            ses.sendEmail(sendEmailRequest.build());
+            if (auth) {
+                String user = config.get("user");
+                String password = config.get("password");
+    
+                SesClient ses1 = SesClient.builder()
+                    .region(ses.serviceClientConfiguration().region())
+                    .credentialsProvider(() -> AwsBasicCredentials.create(user, password))
+                    .build();
+                ses1.sendEmail(sendEmailRequest.build());
+                return;
+            }
 
+            ses.sendEmail(sendEmailRequest.build());
         } catch (Exception e) {
             ServicesLogger.LOGGER.failedToSendEmail(e);
             throw new EmailException(e);

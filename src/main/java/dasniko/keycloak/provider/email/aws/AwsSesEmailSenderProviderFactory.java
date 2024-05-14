@@ -6,6 +6,8 @@ import org.keycloak.email.EmailSenderProviderFactory;
 import org.keycloak.models.KeycloakSession;
 import org.keycloak.models.KeycloakSessionFactory;
 import org.keycloak.provider.ServerInfoAwareProviderFactory;
+
+import software.amazon.awssdk.auth.credentials.EnvironmentVariableCredentialsProvider;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.ses.SesClient;
 
@@ -31,9 +33,16 @@ public class AwsSesEmailSenderProviderFactory implements EmailSenderProviderFact
         if (configRegion != null) {
             configMap.put("region", configRegion);
             Region region = Region.of(configRegion);
-            ses = SesClient.builder().region(region).build();
+            ses = SesClient.builder()
+                .region(region)
+                .credentialsProvider(EnvironmentVariableCredentialsProvider.create())
+                .build();
         } else {
-            ses = SesClient.create();
+            Region region = Region.AP_EAST_1;
+            ses = SesClient.builder()
+                .region(region)
+                .credentialsProvider(EnvironmentVariableCredentialsProvider.create())
+                .build();
         }
     }
 
